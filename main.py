@@ -1,5 +1,5 @@
 # main.py
-# ITeach Academy Registration Bot — Full Perfect Version
+# ITeach Academy Registration Bot — Perfect Version
 
 import logging
 import re
@@ -12,6 +12,8 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardRemove,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
 )
 from telegram.ext import (
     Application,
@@ -24,7 +26,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 # ---------------- CONFIG ----------------
-BOT_TOKEN = "7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c"
+BOT_TOKEN = "YOUR_BOT_TOKEN"
 ADMIN_ID = 6427405038  # faqat bitta admin
 
 # ---------------- LOGGING ----------------
@@ -44,6 +46,7 @@ COURSES = {
     "biology": "🧬 Biologiya",
     "chemistry": "⚗️ Kimyo",
 }
+
 COURSES_WITH_LEVEL = {"english", "german"}
 
 LEVELS = {
@@ -59,8 +62,7 @@ SECTIONS = {
     "kids": "👶 Kids",
     "general": "📘 General",
     "certificate": "🏅 Certificate",
-    "cefr": "🧭 CEFR",
-    "ielts": "🎓 IELTS",
+    "ielts": "🎓 IELTS",   # faqat ingliz tili uchun
 }
 
 PHONE_REGEX = re.compile(r"^\+998\d{9}$")
@@ -134,7 +136,29 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("course:"):
         course = data.split(":")[1]
         context.user_data["course"] = course
-        kb = [[InlineKeyboardButton(v, callback_data=f"section:{k}")] for k, v in SECTIONS.items()]
+
+        # 🔹 Bo‘limlarni kursga qarab chiqaramiz
+        if course == "english":
+            sections = {
+                "kids": SECTIONS["kids"],
+                "general": SECTIONS["general"],
+                "certificate": SECTIONS["certificate"],
+                "ielts": SECTIONS["ielts"],
+            }
+        elif course == "german":
+            sections = {
+                "kids": SECTIONS["kids"],
+                "general": SECTIONS["general"],
+                "certificate": SECTIONS["certificate"],
+            }
+        else:
+            sections = {
+                "kids": SECTIONS["kids"],
+                "general": SECTIONS["general"],
+                "certificate": SECTIONS["certificate"],
+            }
+
+        kb = [[InlineKeyboardButton(v, callback_data=f"section:{k}")] for k, v in sections.items()]
         await q.edit_message_text("🗂 Bo‘limni tanlang:", reply_markup=InlineKeyboardMarkup(kb))
         return
 
@@ -176,8 +200,9 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------- MESSAGE HANDLER ----------------
 async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
-    text = update.message.text.strip()
+    text = update.message.text.strip() if update.message.text else ""
 
+    # FULL NAME
     if step == "full_name":
         if not valid_full_name(text):
             await update.message.reply_text("❌ Iltimos, to‘liq ism kiriting. Masalan: <b>Akmal Valiyev</b>", parse_mode=ParseMode.HTML)
@@ -187,22 +212,43 @@ async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🎂 Yoshingizni kiriting (Masalan: 18):")
         return
 
+    # AGE
     if step == "age":
         if not valid_age(text):
             await update.message.reply_text("❌ Iltimos, yoshingizni to‘g‘ri kiriting (3-100).")
             return
         context.user_data["age"] = text
         context.user_data["step"] = "phone"
-        await update.message.reply_text("📱 Telefon raqamingizni kiriting (faqat +998 bilan):")
+
+        # 🔹 Telefon raqamni qo‘lda yoki share contact bilan olish
+        kb = ReplyKeyboardMarkup(
+            [[KeyboardButton("📱 Raqamni ulashish", request_contact=True)]],
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+        await update.message.reply_text(
+            "📱 Telefon raqamingizni kiriting (masalan: +998901234567) yoki pastdagi tugma orqali yuboring:",
+            reply_markup=kb
+        )
         return
 
-    if step == "phone":
+    # PHONE (manual yozsa)
+    if step == "phone" and text:
         phone = normalize_phone(text)
         if not phone:
             await update.message.reply_text("❌ Telefon raqam noto‘g‘ri. Masalan: +998901234567")
             return
         context.user_data["phone"] = phone
 
+    # PHONE (agar contact yuborsa)
+    if update.message.contact and step == "phone":
+        phone = normalize_phone(update.message.contact.phone_number)
+        if not phone:
+            await update.message.reply_text("❌ Telefon raqam noto‘g‘ri. Masalan: +998901234567")
+            return
+        context.user_data["phone"] = phone
+
+    if "phone" in context.user_data:
         # Show confirmation
         txt = build_admin_text(context.user_data, update.effective_user)
         kb = [
@@ -210,6 +256,7 @@ async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ Bekor qilish", callback_data="reg:cancel")],
         ]
         await update.message.reply_text(txt, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(kb))
+        context.user_data.pop("step", None)  # stepni tozalash
         return
 
 # ---------------- RUN ----------------
@@ -218,6 +265,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(cb_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_handler))
+    app.add_handler(MessageHandler(filters.CONTACT, msg_handler))
     logger.info("Bot is running...")
     app.run_polling()
 
