@@ -111,7 +111,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
         "👋 Assalomu alaykum!\n\n"
-        "<b>ITEach Academy</b> ga xush kelibsiz 🎓\n\n"
+        "<b>ITeach Academy</b> ga xush kelibsiz 🎓\n\n"
         "Bizning jamoamizga qo'shilish va roʻyxatdan o'tish uchun pastdagi tugmadan foydalaning 👇",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🚀 Ro‘yxatdan o‘tish", callback_data="reg:start")]
