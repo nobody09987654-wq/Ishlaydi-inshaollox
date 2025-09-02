@@ -26,7 +26,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 # ---------------- CONFIG ----------------
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+BOT_TOKEN = 7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c
 ADMIN_ID = 6427405038  # faqat bitta admin
 
 # ---------------- LOGGING ----------------
