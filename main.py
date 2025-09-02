@@ -26,7 +26,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 # ---------------- CONFIG ----------------
-BOT_TOKEN = 7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c
+BOT_TOKEN = "7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c"   # <-- tokeningizni qo'shtirnoq ichida yozing
 ADMIN_ID = 6427405038  # faqat bitta admin
 
 # ---------------- LOGGING ----------------
@@ -47,7 +47,8 @@ COURSES = {
     "chemistry": "⚗️ Kimyo",
 }
 
-COURSES_WITH_LEVEL = {"english", "german"}
+# faqat ingliz tilida CEFR bor
+COURSES_WITH_LEVEL = {"english"}
 
 LEVELS = {
     "A1": "A1 • Beginner",
@@ -103,10 +104,25 @@ def build_admin_text(d: Dict[str, Any], u) -> str:
         txt.append(f"📊 <b>Daraja:</b> {esc(LEVELS.get(d.get('level'), d.get('level')))}")
     txt += [
         f"🆔 <b>Telegram ID:</b> {u.id}",
-        f"👤 <b>Username:</b> @{u.username}" if u.username else "👤 <b>Username:</b> Yo‘q",
+        f"👤 <b>Username:</b> @{u.username}" if u.username else "👤 <b>Username:</b> Mavjud emas",
         f"📅 <b>Sana:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
     ]
     return "\n".join(txt)
+
+def get_sections(course: str) -> Dict[str, str]:
+    if course == "english":
+        return {
+            "kids": SECTIONS["kids"],
+            "general": SECTIONS["general"],
+            "certificate": SECTIONS["certificate"],
+            "ielts": SECTIONS["ielts"],
+        }
+    else:
+        return {
+            "kids": SECTIONS["kids"],
+            "general": SECTIONS["general"],
+            "certificate": SECTIONS["certificate"],
+        }
 
 # ---------------- HANDLERS ----------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -135,29 +151,10 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # COURSE SELECT
     if data.startswith("course:"):
         course = data.split(":")[1]
+        context.user_data.clear()
         context.user_data["course"] = course
 
-        # 🔹 Bo‘limlarni kursga qarab chiqaramiz
-        if course == "english":
-            sections = {
-                "kids": SECTIONS["kids"],
-                "general": SECTIONS["general"],
-                "certificate": SECTIONS["certificate"],
-                "ielts": SECTIONS["ielts"],
-            }
-        elif course == "german":
-            sections = {
-                "kids": SECTIONS["kids"],
-                "general": SECTIONS["general"],
-                "certificate": SECTIONS["certificate"],
-            }
-        else:
-            sections = {
-                "kids": SECTIONS["kids"],
-                "general": SECTIONS["general"],
-                "certificate": SECTIONS["certificate"],
-            }
-
+        sections = get_sections(course)
         kb = [[InlineKeyboardButton(v, callback_data=f"section:{k}")] for k, v in sections.items()]
         await q.edit_message_text("🗂 Bo‘limni tanlang:", reply_markup=InlineKeyboardMarkup(kb))
         return
@@ -220,7 +217,6 @@ async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["age"] = text
         context.user_data["step"] = "phone"
 
-        # 🔹 Telefon raqamni qo‘lda yoki share contact bilan olish
         kb = ReplyKeyboardMarkup(
             [[KeyboardButton("📱 Raqamni ulashish", request_contact=True)]],
             resize_keyboard=True,
@@ -232,31 +228,32 @@ async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # PHONE (manual yozsa)
-    if step == "phone" and text:
-        phone = normalize_phone(text)
+    # PHONE
+    if step == "phone":
+        phone = None
+        if update.message.contact:
+            phone = normalize_phone(update.message.contact.phone_number)
+        elif text:
+            phone = normalize_phone(text)
+
         if not phone:
             await update.message.reply_text("❌ Telefon raqam noto‘g‘ri. Masalan: +998901234567")
             return
+
         context.user_data["phone"] = phone
 
-    # PHONE (agar contact yuborsa)
-    if update.message.contact and step == "phone":
-        phone = normalize_phone(update.message.contact.phone_number)
-        if not phone:
-            await update.message.reply_text("❌ Telefon raqam noto‘g‘ri. Masalan: +998901234567")
-            return
-        context.user_data["phone"] = phone
-
-    if "phone" in context.user_data:
         # Show confirmation
         txt = build_admin_text(context.user_data, update.effective_user)
         kb = [
             [InlineKeyboardButton("✅ Tasdiqlash", callback_data="reg:confirm")],
             [InlineKeyboardButton("❌ Bekor qilish", callback_data="reg:cancel")],
         ]
-        await update.message.reply_text(txt, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(kb))
-        context.user_data.pop("step", None)  # stepni tozalash
+        await update.message.reply_text(
+            txt,
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(kb)
+        )
+        context.user_data.pop("step", None)
         return
 
 # ---------------- RUN ----------------
