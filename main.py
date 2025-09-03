@@ -1,5 +1,5 @@
 # main.py
-# ITeach Academy Registration Bot — Final Perfect Fixed Version
+# ITeach Academy Registration Bot — Final Version with ⚖️ Huquq course
 import logging
 import re
 import html
@@ -44,6 +44,7 @@ COURSES = {
     "history": "📜 Tarix",
     "biology": "🧬 Biologiya",
     "chemistry": "⚗️ Kimyo",
+    "law": "⚖️ Huquq",   # 🆕 yangi kurs
 }
 
 COURSES_WITH_LEVEL = {"english", "german"}
@@ -96,8 +97,9 @@ def build_admin_text(d: Dict[str, Any], u) -> str:
         f"🎂 <b>Yosh:</b> {esc(d.get('age'))}",
         f"📱 <b>Telefon:</b> {esc(d.get('phone'))}",
         f"📚 <b>Kurs:</b> {esc(COURSES.get(d.get('course'), d.get('course')))}",
-        f"🗂 <b>Bo‘lim:</b> {esc(SECTIONS.get(d.get('section'), d.get('section')))}",
     ]
+    if d.get("course") not in {"law"}:  # huquq kursida bo‘lim yo‘q
+        txt.append(f"🗂 <b>Bo‘lim:</b> {esc(SECTIONS.get(d.get('section'), d.get('section')))}")
     if d.get("course") in COURSES_WITH_LEVEL:
         txt.append(f"📊 <b>Daraja:</b> {esc(LEVELS.get(d.get('level'), d.get('level')))}")
     txt += [
@@ -155,6 +157,14 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "general": SECTIONS["general"],
                 "certificate": SECTIONS["certificate"],
             }
+        elif course == "law":
+            # ⚖️ Huquq kursida bo‘lim va daraja yo‘q
+            await q.edit_message_text(
+                "👤 Ismingizni kiriting (Masalan: Akmal Valiyev):",
+                reply_markup=nav_buttons("course")
+            )
+            context.user_data["step"] = "full_name"
+            return
         else:
             sections = {
                 "kids": SECTIONS["kids"],
@@ -194,7 +204,7 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="🔄 Yangi ro‘yxatdan o‘tishni boshlash uchun /start buyrug‘ini bosing.",
-            reply_markup=ReplyKeyboardRemove()  # ✅ tugmalarni yopish
+            reply_markup=ReplyKeyboardRemove()
         )
         await context.bot.send_message(ADMIN_ID, txt, parse_mode=ParseMode.HTML)
         context.user_data.clear()
@@ -262,7 +272,6 @@ async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("✅ Tasdiqlash", callback_data="reg:confirm")],
             [InlineKeyboardButton("❌ Bekor qilish", callback_data="reg:cancel")],
         ]
-        # ✅ Pastdagi "📱 Raqamni ulashish" tugmasini o‘chirish
         await update.message.reply_text(
             txt, parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(kb)
