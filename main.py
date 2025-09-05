@@ -1,5 +1,5 @@
 # main.py
-# ITeach Academy Registration Bot — Final Version with ⚖️ Huquq course
+# ITeach Academy Registration Bot — Final Version with ⚖️ Huquq and 🇸🇦 Arab tili (darajasiz)
 import logging
 import re
 import html
@@ -39,15 +39,16 @@ logger = logging.getLogger("iteach_bot")
 COURSES = {
     "english": "🇬🇧 Ingliz tili",
     "german": "🇩🇪 Nemis tili",
+    "arabic": "🇸🇦 Arab tili",   # 🆕 yangi kurs
     "math": "🧮 Matematika",
     "uzbek": "🇺🇿 Ona tili",
     "history": "📜 Tarix",
     "biology": "🧬 Biologiya",
     "chemistry": "⚗️ Kimyo",
-    "law": "⚖️ Huquq",   # 🆕 yangi kurs
+    "law": "⚖️ Huquq",
 }
 
-COURSES_WITH_LEVEL = {"english", "german"}
+COURSES_WITH_LEVEL = {"english", "german"}  # arabic olib tashlandi
 
 LEVELS = {
     "A1": "A1 • Beginner",
@@ -151,7 +152,7 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "certificate": SECTIONS["certificate"],
                 "ielts": SECTIONS["ielts"],
             }
-        elif course == "german":
+        elif course in {"german", "arabic"}:  # arabic shu yerda
             sections = {
                 "kids": SECTIONS["kids"],
                 "general": SECTIONS["general"],
@@ -182,7 +183,7 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["section"] = section
         course = context.user_data.get("course")
 
-        if course in COURSES_WITH_LEVEL:
+        if course in COURSES_WITH_LEVEL:  # arabic yo‘q
             kb = [[InlineKeyboardButton(v, callback_data=f"level:{k}")] for k, v in LEVELS.items()]
             kb += nav_buttons("section").inline_keyboard
             await q.edit_message_text("📊 Darajangizni tanlang:", reply_markup=InlineKeyboardMarkup(kb))
