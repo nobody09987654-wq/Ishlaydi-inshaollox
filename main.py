@@ -1,5 +1,6 @@
 # main.py
-# ITeach Academy Registration Bot — Final Version with ⚖️ Huquq and 🇸🇦 Arab tili (darajasiz)
+# ITeach Academy Registration Bot — Final Version with ⚖️ Huquq, 🇸🇦 Arab tili (darajasiz) va 🇷🇺 Rus tili (darajali)
+
 import logging
 import re
 import html
@@ -25,8 +26,8 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 # ---------------- CONFIG ----------------
-BOT_TOKEN = "7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c"
-ADMIN_ID = 6427405038  # faqat bitta admin ID
+BOT_TOKEN = "7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c"   # o‘zingizning bot tokeningizni yozing
+ADMIN_ID = 6427405038               # faqat bitta admin ID
 
 # ---------------- LOGGING ----------------
 logging.basicConfig(
@@ -39,7 +40,8 @@ logger = logging.getLogger("iteach_bot")
 COURSES = {
     "english": "🇬🇧 Ingliz tili",
     "german": "🇩🇪 Nemis tili",
-    "arabic": "🇸🇦 Arab tili",   # 🆕 yangi kurs
+    "russian": "🇷🇺 Rus tili",   # 🆕 qo‘shildi
+    "arabic": "🇸🇦 Arab tili",
     "math": "🧮 Matematika",
     "uzbek": "🇺🇿 Ona tili",
     "history": "📜 Tarix",
@@ -48,7 +50,8 @@ COURSES = {
     "law": "⚖️ Huquq",
 }
 
-COURSES_WITH_LEVEL = {"english", "german"}  # arabic olib tashlandi
+# Darajali kurslar (Ingliz, Nemis, Rus)
+COURSES_WITH_LEVEL = {"english", "german", "russian"}  
 
 LEVELS = {
     "A1": "A1 • Beginner",
@@ -152,7 +155,7 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "certificate": SECTIONS["certificate"],
                 "ielts": SECTIONS["ielts"],
             }
-        elif course in {"german", "arabic"}:  # arabic shu yerda
+        elif course in {"german", "russian", "arabic"}:  # 🆕 rus tili ham qo‘shildi
             sections = {
                 "kids": SECTIONS["kids"],
                 "general": SECTIONS["general"],
@@ -183,7 +186,7 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["section"] = section
         course = context.user_data.get("course")
 
-        if course in COURSES_WITH_LEVEL:  # arabic yo‘q
+        if course in COURSES_WITH_LEVEL:  # ingliz, nemis, rus
             kb = [[InlineKeyboardButton(v, callback_data=f"level:{k}")] for k, v in LEVELS.items()]
             kb += nav_buttons("section").inline_keyboard
             await q.edit_message_text("📊 Darajangizni tanlang:", reply_markup=InlineKeyboardMarkup(kb))
