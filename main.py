@@ -1,7 +1,3 @@
-main.py
-
-ITeach Academy Registration Bot — Final Version with ⚖️ Huquq, 🇸🇦 Arab tili (darajasiz) va 🇷🇺 Rus tili (darajali)
-
 import logging
 import re
 import html
