@@ -26,7 +26,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 # ---------------- CONFIG ----------------
-BOT_TOKEN = "7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c"  # Token bevosita kod ichida
+BOT_TOKEN = "7832412035:AAHrVkpQXGl4KnxdMWu2hkRu1QgZZaBmGJc"  # Token bevosita kod ichida
 ADMIN_ID = 6427405038  # faqat bitta admin ID
 
 # ---------------- LOGGING ----------------
