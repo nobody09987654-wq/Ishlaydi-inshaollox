@@ -1,5 +1,5 @@
 # main.py
-# ITeach Academy Registration Bot — Final Version with ⚖️ Huquq, 🇸🇦 Arab tili (darajasiz) va 🇷🇺 Rus tili (darajali)
+# ITeach Academy Registration Bot — Clean/Ad-Safe Professional Edition
 
 import logging
 import re
@@ -26,8 +26,8 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 # ---------------- CONFIG ----------------
-BOT_TOKEN = "7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c"   # o‘zingizning bot tokeningizni yozing
-ADMIN_ID = 6427405038               # faqat bitta admin ID
+BOT_TOKEN = "7832412035:AAFVc6186iqlNE_HS60u11tdCzC8pvCQ02c"  # Token bevosita kod ichida
+ADMIN_ID = 6427405038  # faqat bitta admin ID
 
 # ---------------- LOGGING ----------------
 logging.basicConfig(
@@ -40,7 +40,7 @@ logger = logging.getLogger("iteach_bot")
 COURSES = {
     "english": "🇬🇧 Ingliz tili",
     "german": "🇩🇪 Nemis tili",
-    "russian": "🇷🇺 Rus tili",   # 🆕 qo‘shildi
+    "russian": "🇷🇺 Rus tili",
     "arabic": "🇸🇦 Arab tili",
     "math": "🧮 Matematika",
     "uzbek": "🇺🇿 Ona tili",
@@ -49,9 +49,7 @@ COURSES = {
     "chemistry": "⚗️ Kimyo",
     "law": "⚖️ Huquq",
 }
-
-# Darajali kurslar (Ingliz, Nemis, Rus)
-COURSES_WITH_LEVEL = {"english", "german", "russian"}  
+COURSES_WITH_LEVEL = {"english", "german", "russian"}
 
 LEVELS = {
     "A1": "A1 • Beginner",
@@ -61,7 +59,6 @@ LEVELS = {
     "C1": "C1 • Advanced",
     "C2": "C2 • Proficient",
 }
-
 SECTIONS = {
     "kids": "👶 Kids",
     "general": "📘 General",
@@ -102,7 +99,7 @@ def build_admin_text(d: Dict[str, Any], u) -> str:
         f"📱 <b>Telefon:</b> {esc(d.get('phone'))}",
         f"📚 <b>Kurs:</b> {esc(COURSES.get(d.get('course'), d.get('course')))}",
     ]
-    if d.get("course") not in {"law"}:  # huquq kursida bo‘lim yo‘q
+    if d.get("course") not in {"law"}:
         txt.append(f"🗂 <b>Bo‘lim:</b> {esc(SECTIONS.get(d.get('section'), d.get('section')))}")
     if d.get("course") in COURSES_WITH_LEVEL:
         txt.append(f"📊 <b>Daraja:</b> {esc(LEVELS.get(d.get('level'), d.get('level')))}")
@@ -117,9 +114,37 @@ def nav_buttons(step: str) -> InlineKeyboardMarkup:
     kb = [
         [InlineKeyboardButton("❌ Bekor qilish", callback_data="reg:cancel")]
     ]
-    if step != "course":  # faqat boshlang‘ich bosqichda ortga bo‘lmaydi
+    if step != "course":
         kb.insert(0, [InlineKeyboardButton("⬅️ Ortga", callback_data=f"back:{step}")])
     return InlineKeyboardMarkup(kb)
+
+# ---------------- SAFETY: AD/MEDIA FILTERS ----------------
+AD_KEYWORDS = [
+    "awin", "bet", "casino", "1xbet", "melbet", "mostbet", "parimatch", "bcgame",
+    "bonus", "promo", "promokod", "promo code", "aktsiya", "aksiya",
+    "click here", "подпишись", "заработай", "выиграй", "ставк", "букмек",
+    "lottery", "lotereya", "bukmeker", "affiliate", "реферал", "referral",
+    "kredit", "qarz", "loan", "pul ishlang",
+    "tezkor pul", "klik", "klik qiling", "подписка", "подписывайся"
+]
+AD_DOMAINS = [
+    "http://", "https://", "www.", "t.me/joinchat", "t.me/+",
+    ".bet", ".casino", ".porn", ".sex", ".xxx", ".cfd", ".binomo", "binance", "okx",
+]
+
+AD_REGEX = re.compile(
+    r"(" + r"|".join([re.escape(k) for k in AD_KEYWORDS + AD_DOMAINS]) + r")",
+    flags=re.IGNORECASE
+)
+
+def looks_like_ad(text: str) -> bool:
+    if not text:
+        return False
+    if AD_REGEX.search(text):
+        return True
+    if re.search(r"(?:https?://|t\.me/|[A-Za-z0-9\-]+\.[A-Za-z]{2,})", text, flags=re.I):
+        return True
+    return False
 
 # ---------------- HANDLERS ----------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -139,6 +164,12 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = q.data
     await q.answer()
 
+    if data.startswith("back:"):
+        kb = [[InlineKeyboardButton(v, callback_data=f"course:{k}")] for k, v in COURSES.items()]
+        await q.edit_message_text("📚 Qaysi kursga yozilmoqchisiz?", reply_markup=InlineKeyboardMarkup(kb))
+        context.user_data.pop("step", None)
+        return
+
     if data == "reg:start":
         kb = [[InlineKeyboardButton(v, callback_data=f"course:{k}")] for k, v in COURSES.items()]
         await q.edit_message_text("📚 Qaysi kursga yozilmoqchisiz?", reply_markup=InlineKeyboardMarkup(kb))
@@ -155,14 +186,13 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "certificate": SECTIONS["certificate"],
                 "ielts": SECTIONS["ielts"],
             }
-        elif course in {"german", "russian", "arabic"}:  # 🆕 rus tili ham qo‘shildi
+        elif course in {"german", "russian", "arabic"}:
             sections = {
                 "kids": SECTIONS["kids"],
                 "general": SECTIONS["general"],
                 "certificate": SECTIONS["certificate"],
             }
         elif course == "law":
-            # ⚖️ Huquq kursida bo‘lim va daraja yo‘q
             await q.edit_message_text(
                 "👤 Ismingizni kiriting (Masalan: Akmal Valiyev):",
                 reply_markup=nav_buttons("course")
@@ -186,7 +216,7 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["section"] = section
         course = context.user_data.get("course")
 
-        if course in COURSES_WITH_LEVEL:  # ingliz, nemis, rus
+        if course in COURSES_WITH_LEVEL:
             kb = [[InlineKeyboardButton(v, callback_data=f"level:{k}")] for k, v in LEVELS.items()]
             kb += nav_buttons("section").inline_keyboard
             await q.edit_message_text("📊 Darajangizni tanlang:", reply_markup=InlineKeyboardMarkup(kb))
@@ -224,14 +254,18 @@ async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-# ---------------- MESSAGE HANDLER ----------------
+# ---------------- MESSAGE HANDLERS ----------------
 async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
     text = update.message.text.strip() if update.message.text else ""
 
     if step == "full_name":
         if not valid_full_name(text):
-            await update.message.reply_text("❌ Iltimos, to‘liq ism kiriting. Masalan: <b>Akmal Valiyev</b>", parse_mode=ParseMode.HTML, reply_markup=nav_buttons("full_name"))
+            await update.message.reply_text(
+                "❌ Iltimos, to‘liq ism kiriting. Masalan: <b>Akmal Valiyev</b>",
+                parse_mode=ParseMode.HTML,
+                reply_markup=nav_buttons("full_name")
+            )
             return
         context.user_data["full_name"] = text
         context.user_data["step"] = "age"
@@ -284,15 +318,81 @@ async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop("step", None)
         return
 
+# ---------------- HARD BLOCKERS ----------------
+async def delete_media_and_forwards(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.message
+    if msg.contact:
+        if context.user_data.get("step") == "phone":
+            return
+        try:
+            await msg.delete()
+        except Exception as e:
+            logger.debug(f"Delete contact fail: {e}")
+        return
+
+    if getattr(msg, "forward_date", None) or getattr(msg, "forward_origin", None):
+        try:
+            await msg.delete()
+        except Exception as e:
+            logger.debug(f"Delete forwarded fail: {e}")
+        return
+
+    try:
+        await msg.delete()
+    except Exception as e:
+        logger.debug(f"Delete media fail: {e}")
+
+async def delete_ad_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.message
+    text = (msg.text or msg.caption or "").strip()
+
+    if getattr(msg, "forward_date", None) or getattr(msg, "forward_origin", None):
+        try:
+            await msg.delete()
+        except Exception as e:
+            logger.debug(f"Delete forwarded-text fail: {e}")
+        return
+
+    if looks_like_ad(text):
+        try:
+            await msg.delete()
+        except Exception as e:
+            logger.debug(f"Delete ad-text fail: {e}")
+        return
+
+# ---------------- ERROR HANDLER ----------------
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.error("Exception in handler", exc_info=context.error)
+
 # ---------------- RUN ----------------
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(cb_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_handler))
-    app.add_handler(MessageHandler(filters.CONTACT, msg_handler))
-    logger.info("Bot is running...")
-    app.run_polling()
+    app.add_error_handler(error_handler)
+
+    app.add_handler(MessageHandler(
+        filters.PHOTO
+        | filters.VIDEO
+        | filters.AUDIO
+        | filters.VOICE
+        | filters.VIDEO_NOTE
+        | filters.ANIMATION
+        | filters.DOCUMENT
+        | filters.STICKER
+        | filters.ATTACHMENT
+        | filters.FORWARDED
+        | filters.CONTACT,
+        delete_media_and_forwards
+    ), group=0)
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, delete_ad_text), group=1)
+
+    app.add_handler(CommandHandler("start", start), group=2)
+    app.add_handler(CallbackQueryHandler(cb_handler), group=2)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_handler), group=2)
+    app.add_handler(MessageHandler(filters.CONTACT, msg_handler), group=2)
+
+    logger.info("Bot is running with hardened ad/media filters...")
+    app.run_polling(allowed_updates=["message", "callback_query"])
 
 if __name__ == "__main__":
     main()
