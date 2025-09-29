@@ -147,7 +147,6 @@ def looks_like_ad(text: str) -> bool:
     return False
 
 # ---------------- HANDLERS ----------------
-# (qisqartirib, asosiy logika o‘sha-o‘sha qoldi)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -161,7 +160,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML,
     )
 
-# (cb_handler, msg_handler, delete_media_and_forwards, delete_ad_text, error_handler kodlari sizdagi bilan bir xil, o‘zgartirish kerak emas)
+# Test uchun oddiy handlerlar (o‘rniga o‘z funksiyangizni qo‘ying)
+async def cb_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer("Callback!")
+
+async def msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Message!")
+
+async def delete_media_and_forwards(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.delete()
+
+async def delete_ad_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if looks_like_ad(update.message.text):
+        await update.message.delete()
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(f"Error: {context.error}")
 
 # ---------------- RUN ----------------
 def main():
@@ -178,7 +192,7 @@ def main():
         | filters.DOCUMENT
         | filters.STICKER
         | filters.CONTACT
-        | filters.FORWARDED,
+        | filters.FORWARD,  # Faqat yangi versiyada FORWARD, eski versiyada FORWARDED bo‘ladi
         delete_media_and_forwards
     ), group=0)
 
